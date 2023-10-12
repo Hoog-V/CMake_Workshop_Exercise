@@ -136,8 +136,11 @@ int main() {
     mqtt_set_inpub_callback(client, mqtt_pub_start_cb, mqtt_pub_data_cb, 0);
 
     bool subscribed = false;
+    absolute_time_t timeout = nil_time;
     while (true) {
         cyw43_arch_poll();
+        absolute_time_t now = get_absolute_time();
+        if(is_nil_time(timeout) || absolute_time_diff_us(now, timeout) <= 0) {
         if (mqtt_client_is_connected(client) && position == 0) {
             cyw43_arch_lwip_begin();
             if (!subscribed) {
@@ -146,6 +149,7 @@ int main() {
             }
             publish_for_price(client, publish_topic_name, winning_phrase);
             cyw43_arch_lwip_end();
+            timeout = make_timeout_time_ms(3000);
         } else if (position != 0) {
             for (uint8_t blink_times = 0; blink_times < position; blink_times++) {
                 cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 1);
@@ -153,8 +157,9 @@ int main() {
                 cyw43_arch_gpio_put(CYW43_WL_GPIO_LED_PIN, 0);
                 sleep_ms(250);
             }
+            timeout = make_timeout_time_ms(3000);
         }
-        sleep_ms(3000);
+        }
     }
     cyw43_arch_deinit();
 
